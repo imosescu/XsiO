@@ -1,13 +1,3 @@
-/******************************************************************************
-
- Welcome to GDB Online.
- GDB online is an online compiler and debugger tool for C, C++, Python, Java, PHP, Ruby, Perl,
- C#, VB, Swift, Pascal, Fortran, Haskell, Objective-C, Assembly, HTML, CSS, JS, SQLite, Prolog.
- Code, Compile, Run and Debug online from anywhere in world.
-
- *******************************************************************************/
-import com.sun.deploy.util.ArrayUtil;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -15,29 +5,28 @@ public class Main
 {
     private static final int ROWS = 3;
     private static final int COLS = 3;
-    private static final boolean playerIsX = false;
+    private static final boolean playerIsX = true;
+    private static final boolean isTwoPlayers = false;
     private static final boolean computerTriesToLose = true;
 
     private static Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
-        Node root = loadNodes();
-
-        Node selection = root;
+        Node selection = loadNodes();
 
         while (selection.getResult() == BOARD_VALUE.UNKNOWN) {
 
-            if (playerIsX == !selection.isXTurn()) {
+            if (playerIsX == !selection.isXTurn() || isTwoPlayers) {
                 selection = promptSelect(selection);
             } else {
                 selection = autoSelect(selection);
 
                 System.out.println("Computer played:");
-                String[] newPosition = printPos(selection.getPos());
-                Arrays.stream(newPosition).forEach(System.out::println);
+                printPos(getPrintablePos(selection.getPos()));
             }
         }
 
+        printPos(getPrintablePos(selection.getPos()));
         System.out.println("The result is: " + selection.getResult());
     }
 
@@ -49,12 +38,12 @@ public class Main
         String delimiter = "        ";
 
         for (int i=0; i<printablePositions.length; i++) {
-            String[] printablePos = printPos(parent.getChildren().get(i).getPos());
+            String[] printablePos = getPrintablePos(parent.getChildren().get(i).getPos());
             printablePositions[i] = addIndex(printablePos, i+"." + delimiter.substring(0, delimiter.length()/2-1));
         }
 
         String[] lines = joinLines(printablePositions, delimiter);
-        Arrays.stream(lines).forEach(System.out::println);
+        printPos(lines);
 
         int choice = scanner.nextInt();
 
@@ -62,12 +51,13 @@ public class Main
     }
 
     private static Node autoSelect(Node parent) {
-        boolean isMaximize = computerTriesToLose ? playerIsX : !playerIsX;
+        boolean isMaximize = (playerIsX == computerTriesToLose);
 
         Optional<Node> select = isMaximize ?
                 parent.getChildren().stream().max(Comparator.comparingInt(Node::getScore)) :
                 parent.getChildren().stream().min(Comparator.comparingInt(Node::getScore));
-        return select.get();
+
+        return select.orElseThrow(() -> new RuntimeException("No element found"));
     }
 
     private static Node loadNodes() {
@@ -112,29 +102,31 @@ public class Main
         boolean isMax = node.isXTurn();
         Optional<Integer> childrenScore = parent.getChildren().stream()
                 .filter(n-> n.getScore() != null)
-                .map(n -> n.getScore())
+                .map(Node::getScore)
                 .reduce((s1, s2) -> isMax ? Math.max(s1, s2) : Math.min(s1,s2));
 
-        parent.setScore(childrenScore.get());
+        childrenScore.ifPresent(parent::setScore);
     }
 
-    private static String[] printPos(Boolean[][] pos) {
+    private static String[] getPrintablePos(Boolean[][] pos) {
         String[] lines = new String[pos.length];
 
         for (int i=0; i<lines.length; i++) {
-            lines[i] = Arrays.stream(pos[i]).map(b -> getPrintableCharacter(b)).collect(Collectors.joining(" "));
+            lines[i] = Arrays.stream(pos[i]).map(Main::getPrintableCharacter).collect(Collectors.joining(" "));
         }
 
         return lines;
+    }
+
+    private static void printPos(String[] pos) {
+        Arrays.stream(Optional.ofNullable(pos).orElseThrow(() -> new RuntimeException("No position to print"))).forEach(System.out::println);
     }
 
     private static String[] addIndex(String[] lines, String index) {
         String[] result = new String[lines.length+1];
         result[0] = index;
 
-        for (int i=0; i<lines.length; i++) {
-            result [i+1] = lines[i];
-        }
+        System.arraycopy(lines, 0, result, 1, lines.length);
 
         return result;
     }
@@ -148,8 +140,7 @@ public class Main
 
         List<String[][]> transposedBoards = new ArrayList<>();
 
-        for (int i=0; i<lines.length; i++) {
-            String[] board = lines[i];
+        for (String[] board : lines) {
             transposedBoards.add(transpose(board));
         }
 

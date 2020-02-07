@@ -1,5 +1,3 @@
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,10 +19,6 @@ public class Node {
         this.parent = parent;
     }
 
-    public void addChild(Node child) {
-        children.add(child);
-    }
-
     public boolean isLastLevel() {
         return level == (pos.length * pos[0].length);
     }
@@ -43,10 +37,6 @@ public class Node {
 
     public boolean isXTurn() {
         return isXTurn;
-    }
-
-    public int getLevel() {
-        return level;
     }
 
     public BOARD_VALUE getResult() {
